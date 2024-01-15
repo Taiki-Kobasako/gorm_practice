@@ -71,7 +71,7 @@ func main() {
 	fmt.Printf("--Start Insert--\n")
 	// テーブルのデータを追加 C
 	insertData := TableItem{
-		ID:   "102",
+		ID:   "103",
 		Name: "test3",
 	}
 	// トランザクションを開始
@@ -91,6 +91,35 @@ func main() {
 	db.Count(&TableCount)
 	// テーブルのデータ数を表示
 	fmt.Printf("TableCount: %d\n", TableCount)
+	// テーブルのデータを取得
+	db.Find(&TableList)
+	// 取得したデータを表示
+	for _, user := range TableList {
+		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
+	}
+
+	fmt.Printf("--Start Delete--\n")
+	// 挿入されたデータのIDと名前を使用してデータを削除 D
+	var deleteResult *gorm.DB
+	// トランザクションを開始
+	// tx = db.Begin()
+	deleteResult = db.Delete(&TableItem{}, "id = ? AND name = ?", insertData.ID, insertData.Name)
+	// エラーチェック
+	if deleteResult.Error != nil {
+		//トランザクション
+		// tx.Rollback()
+		panic("Failed to delete data: " + deleteResult.Error.Error())
+	}
+	fmt.Printf("Delete Result: %d\n", deleteResult.RowsAffected)
+	fmt.Printf("Delete Data ID: %s, Name: %s\n", insertData.ID, insertData.Name)
+	// トランザクションを確定する
+	// tx.Commit()
+
+	// テーブルのデータ数を取得
+	db.Count(&TableCount)
+	// テーブルのデータ数を表示
+	fmt.Printf("TableCount: %d\n", TableCount)
+
 	// テーブルのデータを取得
 	db.Find(&TableList)
 	// 取得したデータを表示

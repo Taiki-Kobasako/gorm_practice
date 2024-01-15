@@ -10,14 +10,15 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
-type TableItem struct {
+type advertiser struct {
 	ID   string `db:"id"`
 	Name string `db:"name"`
 }
 
-type ItemList []TableItem
+type ItemList []advertiser
 
 func main() {
 	// .envファイルの読み込み
@@ -33,7 +34,7 @@ func main() {
 			LogLevel:                  logger.Info, // Log level
 			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
 			ParameterizedQueries:      true,        // Don't include params in the SQL log
-			Colorful:                  false,       // Disable color
+			Colorful:                  true,        // able to colorize log output
 		},
 	)
 
@@ -43,6 +44,10 @@ func main() {
 	// GORMを使用してMySQLに接続
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: newLogger,
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   "",   // テーブル名のプレフィックス
+			SingularTable: true, // テーブル名を複数形にしない
+		},
 	})
 	if err != nil {
 		panic("Failed to connect to database")
@@ -55,6 +60,7 @@ func main() {
 	// 変数の定義
 	var TableCount int64
 
+	fmt.Printf("\n--Start Read--\n")
 	// テーブルのデータ数を取得
 	db.Count(&TableCount)
 	// テーブルのデータ数を表示
@@ -68,62 +74,67 @@ func main() {
 		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
 	}
 
-	fmt.Printf("--Start Insert--\n")
+	fmt.Printf("\n--Start Insert--\n")
 	// テーブルのデータを追加 C
-	insertData := TableItem{
-		ID:   "103",
-		Name: "test3",
+	insertData := advertiser{
+		ID:   "1",
+		Name: "test",
 	}
 	// トランザクションを開始
-	// tx := db.Begin()
+	tx := db.Begin()
 	result := db.Create(&insertData)
 	// エラーチェック
 	if result.Error != nil {
 		//トランザクション
-		// tx.Rollback()
+		tx.Rollback()
 		panic("Failed to insert data: " + result.Error.Error())
 	}
 	fmt.Printf("Insert Result: %d\n", result.RowsAffected)
 	// トランザクションを確定する
-	// tx.Commit()
+	tx.Commit()
 
 	// テーブルのデータ数を取得
 	db.Count(&TableCount)
 	// テーブルのデータ数を表示
 	fmt.Printf("TableCount: %d\n", TableCount)
+	var TableList2 ItemList
 	// テーブルのデータを取得
-	db.Find(&TableList)
+	db.Find(&TableList2)
 	// 取得したデータを表示
-	for _, user := range TableList {
+	for _, user := range TableList2 {
 		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
 	}
 
-	fmt.Printf("--Start Delete--\n")
+	fmt.Printf("\n--Start Delete--\n")
 	// 挿入されたデータのIDと名前を使用してデータを削除 D
 	var deleteResult *gorm.DB
 	// トランザクションを開始
-	// tx = db.Begin()
-	deleteResult = db.Delete(&TableItem{}, "id = ? AND name = ?", insertData.ID, insertData.Name)
+	tx = db.Begin()
+
+	// dbオブジェクトを複製して新しいトランザクション用のdbオブジェクトを作成
+	txDB := tx.Session(&gorm.Session{NewDB: true})
+	// deleteResult = db.Where("name =?", "test3").Delete(&TableList)
+	deleteResult = txDB.Delete(&advertiser{}, "id = ? AND name = ?", insertData.ID, insertData.Name)
 	// エラーチェック
 	if deleteResult.Error != nil {
 		//トランザクション
-		// tx.Rollback()
+		tx.Rollback()
 		panic("Failed to delete data: " + deleteResult.Error.Error())
 	}
+	// トランザクションを確定する
+	tx.Commit()
 	fmt.Printf("Delete Result: %d\n", deleteResult.RowsAffected)
 	fmt.Printf("Delete Data ID: %s, Name: %s\n", insertData.ID, insertData.Name)
-	// トランザクションを確定する
-	// tx.Commit()
 
 	// テーブルのデータ数を取得
 	db.Count(&TableCount)
 	// テーブルのデータ数を表示
 	fmt.Printf("TableCount: %d\n", TableCount)
-
+	var TableList3 ItemList
 	// テーブルのデータを取得
-	db.Find(&TableList)
+	db.Find(&TableList3)
 	// 取得したデータを表示
-	for _, user := range TableList {
+	for _, user := range TableList3 {
 		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
 	}
 

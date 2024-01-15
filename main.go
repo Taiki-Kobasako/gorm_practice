@@ -68,4 +68,34 @@ func main() {
 		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
 	}
 
+	fmt.Printf("--Start Insert--\n")
+	// テーブルのデータを追加 C
+	insertData := TableItem{
+		ID:   "102",
+		Name: "test3",
+	}
+	// トランザクションを開始
+	// tx := db.Begin()
+	result := db.Create(&insertData)
+	// エラーチェック
+	if result.Error != nil {
+		//トランザクション
+		// tx.Rollback()
+		panic("Failed to insert data: " + result.Error.Error())
+	}
+	fmt.Printf("Insert Result: %d\n", result.RowsAffected)
+	// トランザクションを確定する
+	// tx.Commit()
+
+	// テーブルのデータ数を取得
+	db.Count(&TableCount)
+	// テーブルのデータ数を表示
+	fmt.Printf("TableCount: %d\n", TableCount)
+	// テーブルのデータを取得
+	db.Find(&TableList)
+	// 取得したデータを表示
+	for _, user := range TableList {
+		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
+	}
+
 }

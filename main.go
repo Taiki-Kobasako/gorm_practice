@@ -20,6 +20,20 @@ type advertiser struct {
 
 type ItemList []advertiser
 
+func dbTruncate(db *gorm.DB) error {
+	tx := db.Begin()
+	txDB := tx.Session(&gorm.Session{NewDB: true})
+	txDB.Exec("SET FOREIGN_KEY_CHECKS=0")
+	defer txDB.Exec("SET FOREIGN_KEY_CHECKS=1")
+	truncateDB := txDB.Exec("TRUNCATE TABLE advertiser")
+	if truncateDB.Error != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to truncate table: %w", truncateDB.Error)
+	}
+	tx.Commit()
+	return nil
+}
+
 func main() {
 	// .envファイルの読み込み
 	err := godotenv.Load(".env")
@@ -135,6 +149,26 @@ func main() {
 	db.Find(&TableList3)
 	// 取得したデータを表示
 	for _, user := range TableList3 {
+		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
+	}
+
+	fmt.Printf("\n--Start Truncate--\n")
+	// テーブルのデータを全て削除
+	err = dbTruncate(db)
+	if err != nil {
+		panic("Failed to truncate table: " + err.Error())
+	}
+	fmt.Printf("Truncate Table\n")
+
+	// テーブルのデータ数を取得
+	db.Count(&TableCount)
+	// テーブルのデータ数を表示
+	fmt.Printf("TableCount: %d\n", TableCount)
+	var TableList4 ItemList
+	// テーブルのデータを取得
+	db.Find(&TableList4)
+	// 取得したデータを表示
+	for _, user := range TableList4 {
 		fmt.Printf("ID: %s, Name: %s\n", user.ID, user.Name)
 	}
 
